@@ -9,3 +9,8 @@ python-dotenv
 pytest
 ruff
 black
+prophet
+scikit-learn
+folium
+streamlit-folium
+geopandas
