@@ -8,6 +8,7 @@ RAW = BASE / "data" / "raw" / "dataset.csv"
 OUT = BASE / "data" / "processed" / "ev_metrics.csv"
 DATE_COL_CANDIDATES = ["date", "timestamp", "datetime"]
 
+
 def load_raw(path: Path) -> pd.DataFrame:
     df = pd.read_csv(path)
     for c in DATE_COL_CANDIDATES:
@@ -20,17 +21,32 @@ def load_raw(path: Path) -> pd.DataFrame:
     if "value" not in df.columns:
         num_cols = df.select_dtypes(include="number").columns.tolist()
         if not num_cols:
-            raise ValueError("No numeric column found. Add a 'value' column to your CSV.")
+            raise ValueError(
+                "No numeric column found. Add a 'value' column to your CSV."
+            )
         df = df.rename(columns={num_cols[0]: "value"})
     return df[["date", "value"]].sort_values("date")
+
 
 def build_metrics(df: pd.DataFrame) -> pd.DataFrame:
     out = df.copy()
     out["year"] = out["date"].dt.year
     out["month"] = out["date"].dt.month
-    monthly = out.groupby(["year", "month"], as_index=False)["value"].agg(["sum","mean","median","count"]).reset_index()
-    monthly.columns = ["year", "month", "value_sum", "value_mean", "value_median", "value_count"]
+    monthly = (
+        out.groupby(["year", "month"])["value"]
+        .agg(["sum", "mean", "median", "count"])
+        .reset_index()
+    )
+    monthly.columns = [
+        "year",
+        "month",
+        "value_sum",
+        "value_mean",
+        "value_median",
+        "value_count",
+    ]
     return monthly
+
 
 def main() -> None:
     if not RAW.exists():
@@ -41,6 +57,7 @@ def main() -> None:
     OUT.parent.mkdir(parents=True, exist_ok=True)
     metrics.to_csv(OUT, index=False)
     print(f"Wrote {OUT} ({len(metrics)} rows).")
+
 
 if __name__ == "__main__":
     main()

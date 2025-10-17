@@ -6,7 +6,9 @@ import plotly.express as px
 st.set_page_config(page_title="Real-World Data Insights", layout="wide")
 st.title("🔎 Real-World Data Insights Dashboard")
 
-DATA_PATH = Path(__file__).resolve().parents[2] / "data" / "processed" / "ev_metrics.csv"
+DATA_PATH = (
+    Path(__file__).resolve().parents[2] / "data" / "processed" / "ev_metrics.csv"
+)
 
 with st.sidebar:
     st.header("Data")
@@ -30,11 +32,26 @@ col2.metric("Average monthly", f"{df_f['value_mean'].mean():,.2f}")
 col3.metric("Median monthly", f"{df_f['value_median'].median():,.2f}")
 col4.metric("Months counted", f"{int(df_f['value_count'].sum()):,}")
 
-fig1 = px.line(df_f, x=pd.to_datetime(df_f["year"].astype(str) + "-" + df_f["month"].astype(str) + "-01"),
-               y="value_sum", title="Monthly Total")
+fig1 = px.line(
+    df_f,
+    x=pd.to_datetime(
+        df_f["year"].astype(str) + "-" + df_f["month"].astype(str) + "-01"
+    ),
+    y="value_sum",
+    title="Monthly Total",
+)
 st.plotly_chart(fig1, use_container_width=True)
 
-fig2 = px.bar(df_f, x="month", y="value_mean", color="year", barmode="group", title="Monthly Mean by Year")
+fig2 = px.bar(
+    df_f,
+    x="month",
+    y="value_mean",
+    color="year",
+    barmode="group",
+    title="Monthly Mean by Year",
+)
 st.plotly_chart(fig2, use_container_width=True)
 
-st.caption("Tip: Replace the pipeline with domain-specific metrics once you pick a dataset.")
+st.caption(
+    "Tip: Replace the pipeline with domain-specific metrics once you pick a dataset."
+)
