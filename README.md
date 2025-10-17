@@ -1,6 +1,6 @@
-# 🇳🇴 Norwegian EV Analytics Dashboard
+# 🇳🇴 Norwegian Traffic Analytics Dashboard (NVDB)
 
-A professional, portfolio-ready **Python data analysis + Streamlit dashboard** showcasing **Norwegian Electric Vehicle adoption trends** with comprehensive analytics, seasonal patterns, and growth insights.
+A professional, portfolio-ready **Python data analysis + Streamlit dashboard** showcasing **Norwegian traffic patterns** from the **National Road Database (NVDB)** with comprehensive analytics, regional comparisons, and seasonal insights.
 
 ## Quickstart
 ```bash

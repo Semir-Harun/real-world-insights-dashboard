@@ -4,13 +4,13 @@ from pathlib import Path
 import pandas as pd
 
 BASE = Path(__file__).resolve().parents[2]
-RAW = BASE / "data" / "raw" / "norwegian_ev_registrations.csv"
-OUT = BASE / "data" / "processed" / "ev_metrics.csv"
+RAW = BASE / "data" / "raw" / "norwegian_traffic_nvdb.csv"
+OUT = BASE / "data" / "processed" / "traffic_metrics.csv"
 DATE_COL_CANDIDATES = ["date", "timestamp", "datetime"]
 
 
 def load_raw(path: Path) -> pd.DataFrame:
-    """Load Norwegian EV registration data with enhanced processing."""
+    """Load Norwegian NVDB traffic count data with enhanced processing."""
     df = pd.read_csv(path)
     
     # Convert date column
@@ -22,7 +22,7 @@ def load_raw(path: Path) -> pd.DataFrame:
     if "date" not in df.columns:
         raise ValueError("Could not find a date column. Add 'date' to your CSV.")
     
-    # Handle value column (EV registrations)
+    # Handle value column (traffic counts)
     if "value" not in df.columns:
         num_cols = df.select_dtypes(include="number").columns.tolist()
         if not num_cols:
@@ -31,54 +31,64 @@ def load_raw(path: Path) -> pd.DataFrame:
             )
         df = df.rename(columns={num_cols[0]: "value"})
     
-    # Keep additional Norwegian EV data if available
+    # Keep NVDB-specific data columns if available
     keep_cols = ["date", "value"]
-    if "vehicle_type" in df.columns:
-        keep_cols.append("vehicle_type")
-    if "region" in df.columns:
-        keep_cols.append("region")
-    if "fuel_type" in df.columns:
-        keep_cols.append("fuel_type")
+    nvdb_cols = ["region", "road_category", "traffic_type", "county", "road_number"]
+    for col in nvdb_cols:
+        if col in df.columns:
+            keep_cols.append(col)
     
     return df[keep_cols].sort_values("date")
 
 
 def build_metrics(df: pd.DataFrame) -> pd.DataFrame:
-    """Build comprehensive EV metrics with Norwegian context."""
+    """Build comprehensive traffic metrics from NVDB data."""
     out = df.copy()
     out["year"] = out["date"].dt.year
     out["month"] = out["date"].dt.month
     
-    # Calculate growth metrics for EV registrations
-    out = out.sort_values("date")
-    out["monthly_growth"] = out["value"].pct_change() * 100
-    out["yearly_growth"] = out["value"].pct_change(12) * 100
+    # Calculate traffic trend metrics
+    out = out.sort_values(["region", "date"])
+    out["monthly_change"] = out.groupby("region")["value"].pct_change() * 100
+    out["yearly_change"] = out.groupby("region")["value"].pct_change(12) * 100
     
-    # Monthly aggregation
+    # Calculate rolling averages for trend analysis
+    out["rolling_3_month"] = out.groupby("region")["value"].rolling(3, min_periods=1).mean().values
+    out["rolling_12_month"] = out.groupby("region")["value"].rolling(12, min_periods=1).mean().values
+    
+    # Monthly aggregation by region and road category
+    group_cols = ["year", "month"]
+    if "region" in df.columns:
+        group_cols.append("region")
+    if "road_category" in df.columns:
+        group_cols.append("road_category")
+    
     monthly = (
-        out.groupby(["year", "month"])
+        out.groupby(group_cols)
         .agg({
-            "value": ["sum", "mean", "median", "count", "max"],
-            "monthly_growth": "mean",
-            "yearly_growth": "mean"
+            "value": ["sum", "mean", "median", "count", "max", "min"],
+            "monthly_change": "mean",
+            "yearly_change": "mean",
+            "rolling_3_month": "last",
+            "rolling_12_month": "last"
         })
         .reset_index()
     )
     
-    # Flatten column names
-    monthly.columns = [
-        "year",
-        "month", 
-        "ev_registrations_total",
-        "ev_registrations_mean",
-        "ev_registrations_median", 
-        "data_points",
-        "ev_registrations_max",
-        "monthly_growth_rate",
-        "yearly_growth_rate"
-    ]
+    # Flatten column names for traffic data
+    new_cols = []
+    for col in monthly.columns:
+        if isinstance(col, tuple):
+            if col[0] == "value":
+                new_cols.append(f"traffic_{col[1]}")
+            else:
+                new_cols.append(f"{col[0]}_{col[1]}" if col[1] else col[0])
+        else:
+            new_cols.append(col)
     
-    # Add Norwegian EV adoption insights
+    monthly.columns = new_cols
+    
+    # Add Norwegian traffic analysis context
     monthly["date"] = pd.to_datetime(monthly[["year", "month"]].assign(day=1))
     monthly["season"] = monthly["month"].map({
         12: "Winter", 1: "Winter", 2: "Winter",
@@ -86,6 +96,14 @@ def build_metrics(df: pd.DataFrame) -> pd.DataFrame:
         6: "Summer", 7: "Summer", 8: "Summer",
         9: "Autumn", 10: "Autumn", 11: "Autumn"
     })
+    
+    # Add traffic intensity categories
+    if "traffic_mean" in monthly.columns:
+        monthly["traffic_intensity"] = pd.cut(
+            monthly["traffic_mean"],
+            bins=[0, 30000, 45000, 60000, float('inf')],
+            labels=["Low", "Medium", "High", "Very High"]
+        )
     
     return monthly
 
