@@ -1,0 +1,11 @@
+pandas
+numpy
+matplotlib
+plotly
+streamlit
+jupyter
+pyyaml
+python-dotenv
+pytest
+ruff
+black
