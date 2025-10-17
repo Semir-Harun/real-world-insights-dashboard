@@ -1,6 +1,6 @@
-# Real-World Data Insights Dashboard
+# 🇳🇴 Norwegian EV Analytics Dashboard
 
-A professional, portfolio-ready **Python data analysis + Streamlit dashboard** showcasing real-world insights with clean structure, tests, and CI.
+A professional, portfolio-ready **Python data analysis + Streamlit dashboard** showcasing **Norwegian Electric Vehicle adoption trends** with comprehensive analytics, seasonal patterns, and growth insights.
 
 ## Quickstart
 ```bash
